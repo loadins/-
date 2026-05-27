@@ -1,4 +1,0 @@
-C:\Users\annap\OneDrive\Desktop\chat dlya popushencev\ChatServer\bin\Release\net10.0\win-x64\publish\offline_msgs.json
-C:\Users\annap\OneDrive\Desktop\chat dlya popushencev\ChatServer\bin\Release\net10.0\win-x64\publish\users_db.json
-C:\Users\annap\OneDrive\Desktop\chat dlya popushencev\ChatServer\bin\Release\net10.0\win-x64\publish\ChatServer.pdb
-C:\Users\annap\OneDrive\Desktop\chat dlya popushencev\ChatServer\bin\Release\net10.0\win-x64\publish\ChatServer.exe
