@@ -58,7 +58,9 @@ function connectSignalR() {
     });
     connection.on("RoomUsers", users => {
         const el = document.getElementById("userList");
-        el.innerHTML = users.map(u => `<div class="sidebar-item">${esc(u)}</div>`).join("");
+        el.innerHTML = users.map(u =>
+            `<div class="sidebar-item${u === currentUser ? ' active' : ''}" onclick="cmdWhisper('${escAttr(u)}')" title="Написать ЛС">${esc(u)}${u === currentUser ? ' (это вы)' : ''}</div>`
+        ).join("");
     });
     connection.start().then(() => connection.invoke("Join", currentUser, currentRoom));
     loadMessages(currentRoom);
@@ -151,22 +153,27 @@ function hideCmdModal() {
     document.getElementById("cmdModal").classList.add("hidden");
 }
 
-function cmdWhisper() {
-    const users = [...document.querySelectorAll("#userList .sidebar-item")].map(e => e.textContent).filter(u => u !== currentUser);
+function cmdWhisper(target) {
+    const users = [...document.querySelectorAll("#userList .sidebar-item")].map(e => e.textContent.replace(/\s*\(.*?\)\s*$/, '')).filter(u => u !== currentUser);
+    if (target && target !== currentUser && !users.includes(target)) users.unshift(target);
     if (users.length === 0) { addSystemMsg("Нет других пользователей"); return; }
     showCmdModal("Шёпот", `
         <div style="margin-bottom:.8rem">
             <label style="color:#888;font-size:.8rem">Кому:</label>
             <select id="wTarget" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
-                ${users.map(u => `<option value="${escAttr(u)}">${esc(u)}</option>`).join("")}
+                ${users.map(u => `<option value="${escAttr(u)}"${u === target ? ' selected' : ''}>${esc(u)}</option>`).join("")}
             </select>
         </div>
         <div style="margin-bottom:.8rem">
             <label style="color:#888;font-size:.8rem">Сообщение:</label>
-            <input id="wText" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+            <input id="wText" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0" placeholder="Напиши сообщение..." autofocus>
         </div>
         <button class="btn" onclick="doWhisper()" style="margin-top:.5rem">Отправить</button>
     `);
+    setTimeout(() => {
+        const inp = document.getElementById("wText");
+        if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") doWhisper(); });
+    }, 100);
 }
 async function doWhisper() {
     const target = document.getElementById("wTarget").value;
