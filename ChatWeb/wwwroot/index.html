@@ -42,6 +42,16 @@
     </div>
     <div class="chat-area">
       <div id="messages"></div>
+      <div class="cmd-buttons">
+        <button onclick="cmdWhisper()" title="Личное сообщение">Шёпот</button>
+        <button onclick="cmdReply()" title="Ответить в комнату">Ответ</button>
+        <button onclick="cmdCreate()" title="Создать комнату">Создать</button>
+        <button onclick="cmdRooms()" title="Список комнат">Комнаты</button>
+        <button onclick="cmdLeave()" title="Вернуться в General">Ливнуть</button>
+        <button onclick="cmdFiles()" title="Мои файлы">Файлы</button>
+        <button onclick="cmdDelay()" title="Отложенное сообщение">Задержка</button>
+        <button onclick="cmdForward()" title="Переслать файл">Переслать</button>
+      </div>
       <div class="input-row">
         <input id="msgInput" placeholder="Напиши /help для списка команд" autofocus>
         <button onclick="send()">></button>
@@ -66,7 +76,26 @@
       <li><b>/users</b> — список участников в комнате</li>
       <li><b>/files</b> — список твоих файлов</li>
     </ul>
+    <h3 style="color:#00ff88;margin-top:1.5rem;margin-bottom:.8rem">Кнопки</h3>
+    <ul>
+      <li><b>Шёпот</b> — личное сообщение выбранному юзеру</li>
+      <li><b>Ответ</b> — ответить в комнату (выделенный ответ)</li>
+      <li><b>Создать</b> — создать новую комнату</li>
+      <li><b>Комнаты</b> — список всех комнат</li>
+      <li><b>Ливнуть</b> — выйти в General</li>
+      <li><b>Файлы</b> — список твоих файлов</li>
+      <li><b>Задержка</b> — отправить сообщение через N секунд</li>
+      <li><b>Переслать</b> — отправить свой файл другому юзеру</li>
+    </ul>
     <button class="btn" onclick="hideGuide()">Понятно</button>
+  </div>
+</div>
+
+<div id="cmdModal" class="modal hidden" onclick="hideCmdModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h2 id="cmdModalTitle">Команда</h2>
+    <div id="cmdModalBody"></div>
+    <button class="btn" onclick="hideCmdModal()">Отмена</button>
   </div>
 </div>
 

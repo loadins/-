@@ -102,7 +102,9 @@ function execCmd(cmd) {
 
 function addMessage(msg) {
     const el = document.getElementById("messages");
-    el.innerHTML += `<div class="msg"><span class="user">${esc(msg.user)}</span><span class="text">${esc(msg.text)}</span><span class="time">${new Date(msg.time).toLocaleTimeString()}</span></div>`;
+    const isWhisper = msg.room === "WHISPER";
+    const cls = isWhisper ? " msg-whisper" : "";
+    el.innerHTML += `<div class="msg${cls}"><span class="user">${esc(msg.user)}</span><span class="text">${esc(msg.text)}</span><span class="time">${new Date(msg.time).toLocaleTimeString()}</span></div>`;
     el.scrollTop = el.scrollHeight;
 }
 
@@ -137,6 +139,158 @@ async function loadFiles() {
     ).join("");
 }
 
+// --- COMMAND BUTTONS ---
+function showCmdModal(title, html) {
+    document.getElementById("cmdModalTitle").textContent = title;
+    document.getElementById("cmdModalBody").innerHTML = html;
+    document.getElementById("cmdModal").classList.remove("hidden");
+    const firstInput = document.querySelector("#cmdModalBody input");
+    if (firstInput) setTimeout(() => firstInput.focus(), 100);
+}
+function hideCmdModal() {
+    document.getElementById("cmdModal").classList.add("hidden");
+}
+
+function cmdWhisper() {
+    const users = [...document.querySelectorAll("#userList .sidebar-item")].map(e => e.textContent).filter(u => u !== currentUser);
+    if (users.length === 0) { addSystemMsg("Нет других пользователей"); return; }
+    showCmdModal("Шёпот", `
+        <div style="margin-bottom:.8rem">
+            <label style="color:#888;font-size:.8rem">Кому:</label>
+            <select id="wTarget" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+                ${users.map(u => `<option value="${escAttr(u)}">${esc(u)}</option>`).join("")}
+            </select>
+        </div>
+        <div style="margin-bottom:.8rem">
+            <label style="color:#888;font-size:.8rem">Сообщение:</label>
+            <input id="wText" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+        </div>
+        <button class="btn" onclick="doWhisper()" style="margin-top:.5rem">Отправить</button>
+    `);
+}
+async function doWhisper() {
+    const target = document.getElementById("wTarget").value;
+    const text = document.getElementById("wText").value.trim();
+    if (!text) return;
+    hideCmdModal();
+    try { await connection.invoke("Whisper", currentUser, target, text); } catch {}
+}
+
+function cmdReply() {
+    showCmdModal("Ответ", `
+        <div style="margin-bottom:.8rem">
+            <label style="color:#888;font-size:.8rem">Сообщение:</label>
+            <input id="rText" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+        </div>
+        <button class="btn" onclick="doReply()" style="margin-top:.5rem">Отправить</button>
+    `);
+}
+async function doReply() {
+    const text = document.getElementById("rText").value.trim();
+    if (!text) return;
+    hideCmdModal();
+    const msg = `[REPLY] ${text}`;
+    try { await connection.invoke("SendMessage", currentUser, currentRoom, msg); } catch {}
+}
+
+function cmdCreate() {
+    showCmdModal("Создать комнату", `
+        <div style="margin-bottom:.8rem">
+            <label style="color:#888;font-size:.8rem">Название:</label>
+            <input id="cName" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+        </div>
+        <button class="btn" onclick="doCreate()" style="margin-top:.5rem">Создать</button>
+    `);
+}
+async function doCreate() {
+    const name = document.getElementById("cName").value.trim();
+    if (!name) return;
+    hideCmdModal();
+    try {
+        await connection.invoke("CreateRoom", currentUser, name);
+        await loadRooms();
+    } catch {}
+}
+
+function cmdRooms() {
+    hideCmdModal();
+    get("/api/rooms").then(rooms => {
+        const names = rooms.map(r => r.name).join(", ");
+        addSystemMsg(`Комнаты: ${names}`);
+    });
+}
+
+function cmdLeave() {
+    if (currentRoom !== "General") switchRoom("General");
+}
+
+function cmdFiles() {
+    hideCmdModal();
+    get("/api/files").then(files => {
+        if (files.length === 0) addSystemMsg("Файлов нет");
+        else addSystemMsg(`Файлы: ${files.join(", ")}`);
+    });
+}
+
+function cmdDelay() {
+    showCmdModal("Задержка", `
+        <div style="margin-bottom:.8rem">
+            <label style="color:#888;font-size:.8rem">Секунд:</label>
+            <input id="dSec" type="number" min="1" max="3600" value="5" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+        </div>
+        <div style="margin-bottom:.8rem">
+            <label style="color:#888;font-size:.8rem">Сообщение:</label>
+            <input id="dText" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+        </div>
+        <button class="btn" onclick="doDelay()" style="margin-top:.5rem">Отправить</button>
+    `);
+}
+async function doDelay() {
+    const sec = parseInt(document.getElementById("dSec").value) || 5;
+    const text = document.getElementById("dText").value.trim();
+    if (!text) return;
+    hideCmdModal();
+    addSystemMsg(`Сообщение будет отправлено через ${sec}с`);
+    try { await connection.invoke("DelayedMessage", currentUser, currentRoom, sec, text); } catch {}
+}
+
+function cmdForward() {
+    const files = [...document.querySelectorAll("#fileList a")].map(a => a.textContent);
+    const users = [...document.querySelectorAll("#userList .sidebar-item")].map(e => e.textContent).filter(u => u !== currentUser);
+    if (files.length === 0) { addSystemMsg("Нет файлов для пересылки"); return; }
+    if (users.length === 0) { addSystemMsg("Нет других пользователей"); return; }
+    showCmdModal("Переслать файл", `
+        <div style="margin-bottom:.8rem">
+            <label style="color:#888;font-size:.8rem">Кому:</label>
+            <select id="fTarget" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+                ${users.map(u => `<option value="${escAttr(u)}">${esc(u)}</option>`).join("")}
+            </select>
+        </div>
+        <div style="margin-bottom:.8rem">
+            <label style="color:#888;font-size:.8rem">Файл:</label>
+            <select id="fFile" style="width:100%;padding:.6rem;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#e0e0e0">
+                ${files.map(f => `<option value="${escAttr(f)}">${esc(f)}</option>`).join("")}
+            </select>
+        </div>
+        <button class="btn" onclick="doForward()" style="margin-top:.5rem">Отправить</button>
+    `);
+}
+async function doForward() {
+    const target = document.getElementById("fTarget").value;
+    const file = document.getElementById("fFile").value;
+    hideCmdModal();
+    addSystemMsg(`Файл '${file}' отправлен ${target}`);
+    const msg = `📎 ${file} (отправлен ${target})`;
+    try { await connection.invoke("SendMessage", currentUser, currentRoom, msg); } catch {}
+}
+
+function addSystemMsg(text) {
+    const el = document.getElementById("messages");
+    el.innerHTML += `<div class="msg system">${esc(text)}</div>`;
+    el.scrollTop = el.scrollHeight;
+}
+
+// --- UPLOAD ---
 document.getElementById("uploadForm").addEventListener("submit", async e => {
     e.preventDefault();
     const btn = document.querySelector("#uploadForm button");

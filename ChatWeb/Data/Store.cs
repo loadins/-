@@ -77,6 +77,14 @@ public class Store
         lock (_lock) { return Rooms.GetValueOrDefault(room, []); }
     }
 
+    public void CreateRoom(string room)
+    {
+        lock (_lock)
+        {
+            if (!Rooms.ContainsKey(room)) Rooms[room] = [];
+        }
+    }
+
     public List<RoomInfo> GetRoomList()
     {
         lock (_lock)
