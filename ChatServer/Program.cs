@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Security.Cryptography;
 using Spectre.Console;
 
-const int Port = 8888;
+int Port = args.Length > 0 && int.TryParse(args[0], out var p) ? p : 8888;
 const string StoragePath = "Storage";
 const string UsersFile = "users_db.json";
 const string OfflineFile = "offline_msgs.json";

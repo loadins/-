@@ -22,19 +22,11 @@ int cmdIdx = -1;
 // --- 1. ВХОД (ИСПРАВЛЕНО) ---
 AnsiConsole.Write(new FigletText("NEXUS CHAT").Color(Color.Lime));
 
-string GetRadminIp() {
-    try {
-        return System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName()).AddressList
-            .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && a.ToString().StartsWith("26."))?.ToString() ?? "127.0.0.1";
-    } catch { return "127.0.0.1"; }
-}
-
 while (true) {
     try {
         if (!client.Connected) {
-            string defIp = GetRadminIp();
-            string ip = AnsiConsole.Ask<string>($"IP сервера (Enter для {defIp}):", defIp);
-            int port = AnsiConsole.Ask<int>("Порт (8888):", 8888);
+            string ip = AnsiConsole.Ask<string>("IP сервера:", "127.0.0.1");
+            int port = AnsiConsole.Ask<int>("Порт:", 8888);
             
             AnsiConsole.MarkupLine("[grey]Подключение к серверу...[/]");
             client.Connect(ip, port);
