@@ -89,7 +89,7 @@ _ = Task.Run(async () => {
                     currentRoom = p[1]; chatHistory.Clear(); chatHistory.Add($"[bold green]Вы вошли в {p[1].EscapeMarkup()}[/]"); 
                     break;
                 case "RECEIVE_IMG":
-                    var fileName = p[2];
+                    var fileName = string.Concat(p[2].Where(c => !Path.GetInvalidFileNameChars().Contains(c)).Take(64));
                     var path = Path.Combine("Downloads", fileName);
                     Directory.CreateDirectory("Downloads");
                     File.WriteAllBytes(path, Convert.FromBase64String(p[3]));
@@ -185,6 +185,8 @@ async Task ProcessInput(string input) {
     else if (input.StartsWith("/upload ")) {
         var path = input[8..].Trim('"').Trim();
         if (File.Exists(path)) {
+            long len = new FileInfo(path).Length;
+            if (len > 50_000_000) { Console.WriteLine("Файл > 50MB"); return; }
             var b64 = Convert.ToBase64String(File.ReadAllBytes(path));
             await SendStringAsync(stream, $"UPLOAD|{Path.GetFileName(path)}|{b64}");
         }

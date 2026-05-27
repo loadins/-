@@ -9,12 +9,17 @@ int Port = args.Length > 0 && int.TryParse(args[0], out var p) ? p : 8888;
 const string StoragePath = "Storage";
 const string UsersFile = "users_db.json";
 const string OfflineFile = "offline_msgs.json";
+const int MaxMessageLen = 1_000_000;
+const int MaxFileBase64Len = 100_000_000;
+const int MaxRooms = 100;
+const int MaxDelayedTasks = 50;
 
 Dictionary<string, TcpClient> activeClients = [];
-Dictionary<string, string> userDb = LoadUsers();
+Dictionary<string, UserData> userDb = LoadUsers();
 Dictionary<string, List<string>> offlineDb = LoadOfflineMsgs();
 Dictionary<string, HashSet<string>> rooms = new() { { "General", [] } };
 Dictionary<string, string> userCurrentRoom = [];
+int delayedTaskCount = 0;
 
 System.Threading.Lock globalLock = new();
 
@@ -42,16 +47,22 @@ async Task HandleClient(TcpClient client) {
             var parts = authData.Split('|');
             if (parts.Length < 3) continue;
             string cmd = parts[0], user = parts[1].Trim(), pass = parts[2];
-            string hash = GetHash(pass);
 
             lock (globalLock) {
                 if (cmd == "REG") {
                     if (userDb.ContainsKey(user)) _ = SendStringAsync(stream, "AUTH_ERR|Логин занят");
-                    else { userDb[user] = hash; SaveUsers(); currentUser = user; }
+                    else {
+                        var salt = RandomNumberGenerator.GetHexString(32);
+                        userDb[user] = new UserData(GetHash(pass, salt), salt);
+                        SaveUsers(); currentUser = user;
+                    }
                 } else if (cmd == "LOGIN") {
-                    if (userDb.TryGetValue(user, out var h) && h == hash) {
-                        if (activeClients.ContainsKey(user)) _ = SendStringAsync(stream, "AUTH_ERR|Уже в сети");
-                        else currentUser = user;
+                    if (userDb.TryGetValue(user, out var ud)) {
+                        if (GetHash(pass, ud.Salt) != ud.PasswordHash) {
+                            _ = SendStringAsync(stream, "AUTH_ERR|Неверный пароль");
+                        } else if (activeClients.ContainsKey(user)) {
+                            _ = SendStringAsync(stream, "AUTH_ERR|Уже в сети");
+                        } else currentUser = user;
                     } else _ = SendStringAsync(stream, "AUTH_ERR|Неверный пароль");
                 }
             }
@@ -91,16 +102,31 @@ async Task HandleClient(TcpClient client) {
             }
             else if (msg.StartsWith("/delay ")) {
                 var p = msg.Split(' ', 3);
-                if (p.Length == 3 && int.TryParse(p[1], out int sec)) {
+                if (p.Length == 3 && int.TryParse(p[1], out int sec) && sec is > 0 and <= 3600) {
+                    lock(globalLock) {
+                        if (delayedTaskCount >= MaxDelayedTasks) {
+                            _ = SendToClientAsync(currentUser, "SERVER", "Слишком много отложенных задач");
+                            continue;
+                        }
+                        delayedTaskCount++;
+                    }
                     _ = Task.Run(async () => {
-                        await Task.Delay(sec * 1000);
-                        await BroadcastToRoomAsync(userCurrentRoom[currentUser], "PLAYER", $"{currentUser}|[grey][[DELAYED]][/] {p[2]}");
+                        try {
+                            await Task.Delay(sec * 1000);
+                            await BroadcastToRoomAsync(userCurrentRoom[currentUser], "PLAYER", $"{currentUser}|[grey][[DELAYED]][/] {p[2]}");
+                        } finally { lock(globalLock) delayedTaskCount--; }
                     });
                 }
             }
             else if (msg.StartsWith("/create ")) {
                 string rName = msg[8..].Trim();
-                lock(globalLock) rooms[rName] = [];
+                lock(globalLock) {
+                    if (rooms.Count >= MaxRooms) {
+                        _ = SendToClientAsync(currentUser, "SERVER", "Максимум комнат: 100");
+                        continue;
+                    }
+                    rooms[rName] = [];
+                }
                 await SendToClientAsync(currentUser, "SERVER", $"Комната '{rName}' создана.");
             }
             else if (msg.StartsWith("/join ") || msg == "/leave") {
@@ -128,18 +154,23 @@ async Task HandleClient(TcpClient client) {
             }
             else if (msg.StartsWith("UPLOAD|")) {
                 var parts = msg.Split('|');
+                if (parts.Length < 3 || parts[2].Length > MaxFileBase64Len) continue;
+                var fName = SanitizeFileName(parts[1]);
+                if (string.IsNullOrEmpty(fName)) continue;
                 var userDir = Path.Combine(StoragePath, currentUser);
                 Directory.CreateDirectory(userDir);
-                await File.WriteAllBytesAsync(Path.Combine(userDir, parts[1]), Convert.FromBase64String(parts[2]));
+                try { await File.WriteAllBytesAsync(Path.Combine(userDir, fName), Convert.FromBase64String(parts[2])); } catch {}
                 await SendToClientAsync(currentUser, "SERVER", "Файл загружен.");
             }
             else if (msg.StartsWith("/i ")) {
                 var p = msg.Split(' ', 3);
                 if (p.Length == 3) {
-                    var path = Path.Combine(StoragePath, currentUser, p[2]);
+                    var fName = SanitizeFileName(p[2]);
+                    if (string.IsNullOrEmpty(fName)) continue;
+                    var path = Path.Combine(StoragePath, currentUser, fName);
                     if (File.Exists(path)) {
                         var b64 = Convert.ToBase64String(await File.ReadAllBytesAsync(path));
-                        await SendToClientAsync(p[1], "RECEIVE_IMG", $"{currentUser}|{p[2]}|{b64}");
+                        await SendToClientAsync(p[1], "RECEIVE_IMG", $"{currentUser}|{fName}|{b64}");
                     }
                 }
             }
@@ -192,13 +223,23 @@ async Task SendStringAsync(NetworkStream s, string v) {
 async Task<string?> ReceiveStringAsync(NetworkStream s) {
     try {
         var h = new byte[4]; if (await s.ReadAtLeastAsync(h, 4, false) < 4) return null;
-        var b = new byte[BitConverter.ToInt32(h)]; await s.ReadAtLeastAsync(b, b.Length);
+        int len = BitConverter.ToInt32(h);
+        if (len is <= 0 or > MaxMessageLen) return null;
+        var b = new byte[len]; await s.ReadAtLeastAsync(b, b.Length);
         return Encoding.UTF8.GetString(b);
     } catch { return null; }
 }
 
-string GetHash(string p) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(p)));
+string SanitizeFileName(string name) {
+    var invalid = Path.GetInvalidFileNameChars();
+    var safe = string.Concat(name.Where(c => !invalid.Contains(c)).Take(64));
+    return safe.Contains("..") ? null : safe;
+}
+
+string GetHash(string p, string salt) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(salt + p)));
 void SaveUsers() => File.WriteAllText(UsersFile, JsonSerializer.Serialize(userDb));
-Dictionary<string, string> LoadUsers() => File.Exists(UsersFile) ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(UsersFile))! : [];
+Dictionary<string, UserData> LoadUsers() => File.Exists(UsersFile) ? JsonSerializer.Deserialize<Dictionary<string, UserData>>(File.ReadAllText(UsersFile))! : [];
 void SaveOfflineMsgs() => File.WriteAllText(OfflineFile, JsonSerializer.Serialize(offlineDb));
 Dictionary<string, List<string>> LoadOfflineMsgs() => File.Exists(OfflineFile) ? JsonSerializer.Deserialize<Dictionary<string, List<string>>>(File.ReadAllText(OfflineFile))! : [];
+
+record UserData(string PasswordHash, string Salt);
