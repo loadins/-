@@ -64,6 +64,8 @@ app.MapPost("/api/upload", async (HttpContext ctx, Store store) =>
     var file = ctx.Request.Form.Files.FirstOrDefault();
     if (file == null || file.Length == 0)
         return Results.Json(new { ok = false, error = "Файл не выбран" });
+    if (file.Length > 50 * 1024 * 1024)
+        return Results.Json(new { ok = false, error = "Файл больше 50MB" });
 
     var dir = Path.Combine("Data", "uploads", user);
     Directory.CreateDirectory(dir);
@@ -72,6 +74,7 @@ app.MapPost("/api/upload", async (HttpContext ctx, Store store) =>
     if (string.IsNullOrEmpty(safeName)) return Results.Json(new { ok = false, error = "Имя файла недопустимо" });
 
     var path = Path.Combine(dir, safeName);
+    if (File.Exists(path)) File.Delete(path);
     using var fs = new FileStream(path, FileMode.Create);
     await file.CopyToAsync(fs);
     return Results.Json(new { ok = true, name = safeName });
@@ -91,11 +94,12 @@ app.MapGet("/api/download/{user}/{name}", async (HttpContext ctx, Store store, s
 {
     var currentUser = ctx.User.Identity?.Name;
     if (currentUser == null) return Results.Unauthorized();
-    name = new string(string.Concat(name.Where(c => !Path.GetInvalidFileNameChars().Contains(c))).Take(64).ToArray());
-    var path = Path.Combine("Data", "uploads", user, name);
+    if (currentUser != user) return Results.Forbid();
+    var safeName = new string(string.Concat(name.Where(c => !Path.GetInvalidFileNameChars().Contains(c))).Take(64).ToArray());
+    var path = Path.Combine("Data", "uploads", currentUser, safeName);
     if (!File.Exists(path)) return Results.NotFound();
     var bytes = await File.ReadAllBytesAsync(path);
-    return Results.File(bytes, "application/octet-stream", name);
+    return Results.File(bytes, "application/octet-stream", safeName);
 });
 
 app.MapGet("/api/rooms", (Store store) =>

@@ -1,6 +1,7 @@
 let connection = null;
 let currentRoom = "General";
 let currentUser = "";
+let sending = false;
 
 function get(endpoint) {
     return fetch(endpoint, { credentials: "same-origin" }).then(r => r.json());
@@ -50,16 +51,29 @@ function connectSignalR() {
         el.innerHTML += `<div class="msg system">${esc(user)} зашел</div>`;
         el.scrollTop = el.scrollHeight;
     });
+    connection.on("UserLeft", user => {
+        const el = document.getElementById("messages");
+        el.innerHTML += `<div class="msg system">${esc(user)} вышел</div>`;
+        el.scrollTop = el.scrollHeight;
+    });
+    connection.on("RoomUsers", users => {
+        const el = document.getElementById("userList");
+        el.innerHTML = users.map(u => `<div class="sidebar-item">${esc(u)}</div>`).join("");
+    });
     connection.start().then(() => connection.invoke("Join", currentUser, currentRoom));
     loadMessages(currentRoom);
 }
 
 async function send() {
+    if (sending) return;
     const input = document.getElementById("msgInput");
     const text = input.value.trim();
     if (!text) return;
+    sending = true;
     input.value = "";
-    await connection.invoke("SendMessage", currentUser, currentRoom, text);
+    try {
+        await connection.invoke("SendMessage", currentUser, currentRoom, text);
+    } finally { sending = false; }
 }
 
 function addMessage(msg) {
@@ -79,7 +93,7 @@ async function loadRooms() {
     const rooms = await get("/api/rooms");
     const el = document.getElementById("roomList");
     el.innerHTML = rooms.map(r =>
-        `<div class="sidebar-item ${r.name === currentRoom ? 'active' : ''}" onclick="switchRoom('${esc(r.name)}')">${esc(r.name)} (${r.users.length})</div>`
+        `<div class="sidebar-item ${r.name === currentRoom ? 'active' : ''}" onclick="switchRoom('${escAttr(r.name)}')">${esc(r.name)} (${r.users.length})</div>`
     ).join("");
 }
 
@@ -101,14 +115,19 @@ async function loadFiles() {
 
 document.getElementById("uploadForm").addEventListener("submit", async e => {
     e.preventDefault();
+    const btn = document.querySelector("#uploadForm button");
+    btn.disabled = true;
     const form = new FormData(document.getElementById("uploadForm"));
     const data = await post("/api/upload", form);
     if (data.ok) {
         loadFiles();
         const msg = `📎 ${data.name}`;
-        await connection.invoke("SendMessage", currentUser, currentRoom, msg);
+        try { await connection.invoke("SendMessage", currentUser, currentRoom, msg); } catch {}
+    } else {
+        alert(data.error);
     }
     document.getElementById("fileInput").value = "";
+    btn.disabled = false;
 });
 
 document.getElementById("msgInput").addEventListener("keydown", e => {
@@ -126,6 +145,9 @@ function esc(s) {
     const d = document.createElement("div");
     d.textContent = s;
     return d.innerHTML;
+}
+function escAttr(s) {
+    return esc(s).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 }
 
 get("/api/me").then(d => {

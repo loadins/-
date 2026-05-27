@@ -12,17 +12,26 @@ public class ChatHub : Hub
 
     public ChatHub(Store store) { _store = store; }
 
-    public override Task OnDisconnectedAsync(Exception? ex)
+    public override async Task OnDisconnectedAsync(Exception? ex)
     {
-        lock (_lock) Connections.Remove(Context.ConnectionId);
-        return base.OnDisconnectedAsync(ex);
+        string? user = null;
+        lock (_lock) Connections.Remove(Context.ConnectionId, out user);
+        if (user != null)
+        {
+            var room = _store.GetUserRoom(user);
+            _store.LeaveRoom(user);
+            await Clients.Group(room).SendAsync("UserLeft", user);
+        }
+        await base.OnDisconnectedAsync(ex);
     }
 
     public async Task Join(string user, string room)
     {
         lock (_lock) Connections[Context.ConnectionId] = user;
+        _store.JoinRoom(user, room);
         await Groups.AddToGroupAsync(Context.ConnectionId, room);
         await Clients.OthersInGroup(room).SendAsync("UserJoined", user);
+        await Clients.Caller.SendAsync("RoomUsers", _store.GetRoomUsers(room).ToList());
     }
 
     public async Task SendMessage(string user, string room, string text)

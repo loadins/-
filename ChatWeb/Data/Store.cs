@@ -55,6 +55,18 @@ public class Store
         }
     }
 
+    public void LeaveRoom(string user)
+    {
+        lock (_lock)
+        {
+            if (UserRoom.TryGetValue(user, out var room))
+            {
+                if (Rooms.TryGetValue(room, out var users)) users.Remove(user);
+                UserRoom.Remove(user);
+            }
+        }
+    }
+
     public string GetUserRoom(string user)
     {
         lock (_lock) { return UserRoom.GetValueOrDefault(user, "General"); }
