@@ -86,6 +86,16 @@ function execCmd(cmd) {
         el.scrollTop = el.scrollHeight;
         return;
     }
+    if (cmd === "/files") {
+        const files = document.getElementById("fileList");
+        if (files.children.length === 0) {
+            el.innerHTML += `<div class="msg system">Файлов нет</div>`;
+        } else {
+            el.innerHTML += `<div class="msg system">Файлы: ${files.innerText.replace(/\s+/g, ' ')}</div>`;
+        }
+        el.scrollTop = el.scrollHeight;
+        return;
+    }
     el.innerHTML += `<div class="msg system">Неизвестная команда: ${esc(cmd)}</div>`;
     el.scrollTop = el.scrollHeight;
 }

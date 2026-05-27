@@ -24,7 +24,7 @@
   <div class="topbar">
     <span id="roomName">General</span>
     <span id="userName"></span>
-    <a href="#" onclick="showGuide()" style="color:#00ff88;margin-right:1rem">?</a>
+    <a href="#" onclick="showGuide()" style="color:#00ff88;margin-right:1rem;font-weight:bold">Справка</a>
     <a href="#" onclick="logout()">Выйти</a>
   </div>
   <div class="main">
@@ -43,10 +43,10 @@
     <div class="chat-area">
       <div id="messages"></div>
       <div class="input-row">
-        <input id="msgInput" placeholder="Сообщение... /help" autofocus>
+        <input id="msgInput" placeholder="Напиши /help для списка команд" autofocus>
         <button onclick="send()">></button>
       </div>
-      <div class="cmd-hint">/help /clear /users</div>
+      <div class="cmd-hint" onclick="showGuide()"><span>/help</span><span>/clear</span><span>/users</span><span>/files</span></div>
     </div>
   </div>
 </div>
@@ -64,6 +64,7 @@
       <li><b>/help</b> — показать эту справку</li>
       <li><b>/clear</b> — очистить чат (локально)</li>
       <li><b>/users</b> — список участников в комнате</li>
+      <li><b>/files</b> — список твоих файлов</li>
     </ul>
     <button class="btn" onclick="hideGuide()">Понятно</button>
   </div>
