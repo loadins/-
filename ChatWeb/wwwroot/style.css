@@ -37,7 +37,6 @@ body{font-family:'Segoe UI',sans-serif;background:#0d0d0d;color:#e0e0e0;height:1
 .msg .time{color:#444;font-size:.75rem;margin-left:.5rem}
 .msg .text{color:#e0e0e0}
 .msg.system{color:#666;font-style:italic;font-size:.9rem}
-.msg.system .user{color:#888}
 .msg.file-msg{background:#1a1a1a;padding:.6rem;border-radius:6px;border-left:3px solid #00ff88}
 .msg.file-msg a{color:#00ff88;text-decoration:none}
 
@@ -45,3 +44,11 @@ body{font-family:'Segoe UI',sans-serif;background:#0d0d0d;color:#e0e0e0;height:1
 .input-row input{flex:1;padding:.8rem;background:#0d0d0d;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:1rem}
 .input-row input:focus{outline:none;border-color:#00ff88}
 .input-row button{background:#00ff88;color:#0d0d0d;border:none;padding:.8rem 1.5rem;margin-left:.5rem;border-radius:6px;cursor:pointer;font-weight:bold;font-size:1rem}
+
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal-content{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:2rem;max-width:480px;width:90%}
+.modal-content h2{color:#00ff88;margin-bottom:1rem}
+.modal-content ul{list-style:none;padding:0}
+.modal-content li{margin-bottom:.8rem;line-height:1.5;color:#ccc}
+.modal-content li b{color:#00ff88}
+.modal-content .btn{background:#00ff88;color:#0d0d0d;border:none;padding:.8rem 2rem;border-radius:6px;cursor:pointer;font-weight:bold;font-size:1rem;margin-top:1rem;width:100%}

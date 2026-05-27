@@ -19,10 +19,12 @@
     <div id="loginError" class="error"></div>
   </div>
 </div>
+
 <div id="chatPage" class="hidden">
   <div class="topbar">
     <span id="roomName">General</span>
     <span id="userName"></span>
+    <a href="#" onclick="showGuide()" style="color:#00ff88;margin-right:1rem">?</a>
     <a href="#" onclick="logout()">Выйти</a>
   </div>
   <div class="main">
@@ -47,6 +49,19 @@
     </div>
   </div>
 </div>
+
+<div id="guideModal" class="modal hidden" onclick="hideGuide()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h2>Nexus Chat — как пользоваться</h2>
+    <ul>
+      <li><b>Сообщения</b> — просто пиши и жми Enter</li>
+      <li><b>Файлы</b> — выбери файл, нажми "Загрузить"<br>ссылка появится в чате</li>
+      <li><b>Комнаты</b> — кликни по комнате слева чтобы переключиться</li>
+    </ul>
+    <button class="btn" onclick="hideGuide()">Понятно</button>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 <script src="app.js"></script>
 </body>

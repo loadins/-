@@ -75,13 +75,16 @@ public class Store
 
     public void SaveMessage(ChatMessage msg)
     {
-        var file = Path.Combine(_msgsDir, $"{msg.Room}.json");
-        var msgs = File.Exists(file)
-            ? JsonSerializer.Deserialize<List<ChatMessage>>(File.ReadAllText(file))!
-            : [];
-        msgs.Add(msg);
-        if (msgs.Count > 200) msgs = msgs.TakeLast(200).ToList();
-        File.WriteAllText(file, JsonSerializer.Serialize(msgs));
+        lock (_lock)
+        {
+            var file = Path.Combine(_msgsDir, $"{msg.Room}.json");
+            var msgs = File.Exists(file)
+                ? JsonSerializer.Deserialize<List<ChatMessage>>(File.ReadAllText(file))!
+                : [];
+            msgs.Add(msg);
+            if (msgs.Count > 200) msgs = msgs.TakeLast(200).ToList();
+            File.WriteAllText(file, JsonSerializer.Serialize(msgs));
+        }
     }
 
     public List<ChatMessage> GetRecentMessages(string room, int count = 50)

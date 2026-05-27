@@ -57,17 +57,24 @@ app.MapGet("/api/me", (HttpContext ctx) =>
     return Results.Json(new { user });
 });
 
-app.MapPost("/api/upload", async (HttpContext ctx, Store store, IFormFile file) =>
+app.MapPost("/api/upload", async (HttpContext ctx, Store store) =>
 {
     var user = ctx.User.Identity?.Name;
     if (user == null) return Results.Unauthorized();
+    var file = ctx.Request.Form.Files.FirstOrDefault();
+    if (file == null || file.Length == 0)
+        return Results.Json(new { ok = false, error = "Файл не выбран" });
+
     var dir = Path.Combine("Data", "uploads", user);
     Directory.CreateDirectory(dir);
-    var name = string.Concat(file.FileName.Where(c => !Path.GetInvalidFileNameChars().Contains(c)).Take(64));
-    var path = Path.Combine(dir, name);
+    var name = string.Concat(file.FileName.Where(c => !Path.GetInvalidFileNameChars().Contains(c))).Take(64).ToArray();
+    var safeName = new string(name);
+    if (string.IsNullOrEmpty(safeName)) return Results.Json(new { ok = false, error = "Имя файла недопустимо" });
+
+    var path = Path.Combine(dir, safeName);
     using var fs = new FileStream(path, FileMode.Create);
     await file.CopyToAsync(fs);
-    return Results.Json(new { ok = true, name });
+    return Results.Json(new { ok = true, name = safeName });
 });
 
 app.MapGet("/api/files", (HttpContext ctx) =>
@@ -84,7 +91,7 @@ app.MapGet("/api/download/{user}/{name}", async (HttpContext ctx, Store store, s
 {
     var currentUser = ctx.User.Identity?.Name;
     if (currentUser == null) return Results.Unauthorized();
-    name = string.Concat(name.Where(c => !Path.GetInvalidFileNameChars().Contains(c)).Take(64));
+    name = new string(string.Concat(name.Where(c => !Path.GetInvalidFileNameChars().Contains(c))).Take(64).ToArray());
     var path = Path.Combine("Data", "uploads", user, name);
     if (!File.Exists(path)) return Results.NotFound();
     var bytes = await File.ReadAllBytesAsync(path);
