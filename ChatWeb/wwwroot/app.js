@@ -72,8 +72,22 @@ async function send() {
     sending = true;
     input.value = "";
     try {
+        if (text.startsWith("/")) { execCmd(text); return; }
         await connection.invoke("SendMessage", currentUser, currentRoom, text);
     } finally { sending = false; }
+}
+
+function execCmd(cmd) {
+    const el = document.getElementById("messages");
+    if (cmd === "/help") { showGuide(); return; }
+    if (cmd === "/clear") { el.innerHTML = ""; return; }
+    if (cmd === "/users") {
+        el.innerHTML += `<div class="msg system">Участники: ${document.getElementById("userList").innerText || "никого"}</div>`;
+        el.scrollTop = el.scrollHeight;
+        return;
+    }
+    el.innerHTML += `<div class="msg system">Неизвестная команда: ${esc(cmd)}</div>`;
+    el.scrollTop = el.scrollHeight;
 }
 
 function addMessage(msg) {

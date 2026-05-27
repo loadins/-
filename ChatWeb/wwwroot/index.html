@@ -43,9 +43,10 @@
     <div class="chat-area">
       <div id="messages"></div>
       <div class="input-row">
-        <input id="msgInput" placeholder="Сообщение..." autofocus>
+        <input id="msgInput" placeholder="Сообщение... /help" autofocus>
         <button onclick="send()">></button>
       </div>
+      <div class="cmd-hint">/help /clear /users</div>
     </div>
   </div>
 </div>
@@ -57,6 +58,12 @@
       <li><b>Сообщения</b> — просто пиши и жми Enter</li>
       <li><b>Файлы</b> — выбери файл, нажми "Загрузить"<br>ссылка появится в чате</li>
       <li><b>Комнаты</b> — кликни по комнате слева чтобы переключиться</li>
+    </ul>
+    <h3 style="color:#00ff88;margin-top:1.5rem;margin-bottom:.8rem">Команды</h3>
+    <ul>
+      <li><b>/help</b> — показать эту справку</li>
+      <li><b>/clear</b> — очистить чат (локально)</li>
+      <li><b>/users</b> — список участников в комнате</li>
     </ul>
     <button class="btn" onclick="hideGuide()">Понятно</button>
   </div>
