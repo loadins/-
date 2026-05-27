@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Chat</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d0d0d;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            justify-content: center;
+        }
+        .container { text-align: center; padding: 2rem; }
+        h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+        }
+        .subtitle { color: #666; margin-bottom: 2.5rem; font-size: 1rem; }
+        .ip-box {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 1.5rem 3rem;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+        .ip-box span { font-size: 1.5rem; color: #00ff88; font-weight: bold; letter-spacing: 2px; }
+        .ip-box .label { font-size: 0.8rem; color: #666; margin-bottom: 0.5rem; }
+        .btn {
+            display: inline-block;
+            background: #00ff88;
+            color: #0d0d0d;
+            padding: 1rem 2.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            margin: 0.5rem;
+        }
+        .btn:hover { background: #00cc6a; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,255,136,0.3); }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #333;
+            color: #e0e0e0;
+        }
+        .btn-secondary:hover { border-color: #00ff88; color: #00ff88; }
+        .info { margin-top: 2rem; color: #444; font-size: 0.85rem; line-height: 1.6; }
+        .info a { color: #00ff88; text-decoration: none; }
+        .info a:hover { text-decoration: underline; }
+        .status {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .status .online { color: #00ff88; }
+        .status .offline { color: #ff4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Nexus Chat</h1>
+        <p class="subtitle">к чату готовы</p>
+
+        <div class="ip-box">
+            <div class="label">СЕРВЕР</div>
+            <span>51.250.47.167:8888</span>
+        </div>
+
+        <div>
+            <a href="ChatClient.zip" class="btn" download>⬇ Скачать клиент (zip)</a>
+            <a href="https://github.com/loadins/-" class="btn btn-secondary" target="_blank">GitHub</a>
+        </div>
+
+        <div class="status">
+            <span class="online">● ONLINE</span>
+        </div>
+
+        <div class="info">
+            Регистрация / комнаты / личные сообщения / изображения<br>
+            Cервер на .NET 10  ·  TCP 8888
+        </div>
+    </div>
+</body>
+</html>
